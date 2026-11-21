@@ -1,0 +1,59 @@
+# Plan morning-digest § 3 and § 4. Publishes a static copy of /digest/<night> to GitHub Pages.
+# The HTML is built on the runner and never committed (ADR 0003). The banner shows the
+# LANE_MARKER secret; delete the secret and run again to take the marker off the same link.
+name: preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      night:
+        description: Night to publish (YYYY-MM-DD)
+        default: '2026-10-28'
+        required: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm install --no-package-lock --no-audit --no-fund
+      - name: Save the page as one HTML file
+        env:
+          LANE_MARKER: ${{ secrets.LANE_MARKER }}
+          NIGHT: ${{ inputs.night }}
+          PORT: 8787
+        run: |
+          [[ "$NIGHT" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "bad night: $NIGHT"; exit 1; }
+          npx tsx src/server.ts &
+          for i in $(seq 30); do curl -sf localhost:$PORT/health >/dev/null && break; sleep 1; done
+          mkdir -p _site
+          curl -sf "localhost:$PORT/digest/$NIGHT" -o "_site/digest-$NIGHT.html"
+          if [ -n "$LANE_MARKER" ]; then echo "banner: lane marker set"; else echo "banner: no marker set"; fi
+          kill %1
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
