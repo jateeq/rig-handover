@@ -6,6 +6,7 @@ describe('readNight', () => {
     const night = readNight('runs', '2026-10-28');
     expect(night).not.toBeNull();
     expect(night!.badLines).toBe(1);
+    expect(night!.counts).toEqual({ ok: 10, retry: 4, fail: 1 });
     expect(night!.rows.map((r) => r.job)).toEqual([
       'digest/render',
       'fixtures/refresh',
@@ -40,7 +41,7 @@ describe('readNight', () => {
   });
 
   it('renders an empty night as no rows', () => {
-    expect(digest('2026-10-30', '')).toEqual({ night: '2026-10-30', rows: [], badLines: 0 });
+    expect(digest('2026-10-30', '')).toEqual({ night: '2026-10-30', rows: [], counts: { ok: 0, retry: 0, fail: 0 }, badLines: 0 });
   });
 });
 

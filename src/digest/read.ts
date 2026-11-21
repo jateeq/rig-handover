@@ -32,6 +32,7 @@ export function parseLine(text: string): RunLine | null {
 /** Folds a night's text into rows. Blank lines are ignored; other unparseable lines are counted. */
 export function digest(night: string, text: string): Night {
   const byJob = new Map<string, DigestRow>();
+  const counts: Record<RunStatus, number> = { ok: 0, retry: 0, fail: 0 };
   let badLines = 0;
   for (const raw of text.split('\n')) {
     if (raw.trim() === '') continue;
@@ -40,6 +41,7 @@ export function digest(night: string, text: string): Night {
       badLines++;
       continue;
     }
+    counts[line.status]++;
     const row = byJob.get(line.job);
     if (!row) {
       byJob.set(line.job, {
@@ -62,7 +64,7 @@ export function digest(night: string, text: string): Night {
     row.lastAt = line.at;
   }
   const rows = [...byJob.values()].sort((a, b) => (a.job < b.job ? -1 : a.job > b.job ? 1 : 0));
-  return { night, rows, badLines };
+  return { night, rows, counts, badLines };
 }
 
 /** Reads runs/<night>.jsonl. `null` when there is no such night on disk. */

@@ -29,6 +29,8 @@ export type Night = {
   night: string;
   /** Sorted by job. */
   rows: DigestRow[];
+  /** Runs per status across all jobs (valid lines only). The status board shows these. */
+  counts: Record<RunStatus, number>;
   /** Lines that did not parse or did not match RunLine. Counted, never thrown. */
   badLines: number;
 };
